@@ -9,7 +9,6 @@ steps:
     entrypoint: yarn
     args: ["test"]
   - name: gcr.io/cloud-builders/gcloud
-    dir: lib
     args:
       [
         "functions",
