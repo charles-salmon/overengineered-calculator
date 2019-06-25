@@ -17,4 +17,6 @@ steps:
         "--trigger-http",
         "--runtime",
         "nodejs10",
+        "--source",
+        "./lib",
       ]
