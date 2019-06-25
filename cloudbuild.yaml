@@ -1,6 +1,10 @@
 steps:
-  - name: "gcr.io/cloud-builders/yarn"
-  - name: "gcr.io/cloud-builders/yarn"
+  - name: node:lts-stretch
+    entrypoint: yarn
+    args: ["install"]
+  - name: node:lts-stretch
+    entrypoint: yarn
     args: ["build"]
-  - name: "gcr.io/cloud-builders/yarn"
+  - name: node:lts-stretch
+    entrypoint: yarn
     args: ["test"]
