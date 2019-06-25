@@ -1,0 +1,20 @@
+steps:
+  - name: node:lts-stretch
+    entrypoint: yarn
+    args: ["install"]
+  - name: node:lts-stretch
+    entrypoint: yarn
+    args: ["build"]
+  - name: node:lts-stretch
+    entrypoint: yarn
+    args: ["test"]
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      [
+        "functions",
+        "deploy",
+        "calculate",
+        "--trigger-http",
+        "--runtime",
+        "nodejs10",
+      ]
