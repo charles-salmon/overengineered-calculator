@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A cloud function which responds to Slack slash commands to perform basic numeric calculations.",
   "main": "lib/index.js",
-  "repository": "https://github.com/charles-salmon/overengineered-calculator",
+  "repository": "https://github.com/overengineeredcalculator/overengineered-calculator",
   "author": "Charles Salmon <charles.salmon@intranel.com>",
   "license": "MIT",
   "devDependencies": {
