@@ -1,3 +1,4 @@
+import { ERROR } from "./constants";
 import { Expression, OperationType } from "./expression";
 import { assert } from "./utilities/assert";
 
@@ -33,10 +34,7 @@ class Calculator {
   }
 
   private static divide(firstNumber: number, secondNumber: number): number {
-    assert(
-      secondNumber !== 0,
-      "Unable to perform calculation. Cannot divide by 0."
-    );
+    assert(secondNumber !== 0, ERROR.DIVISION_BY_ZERO);
     return firstNumber / secondNumber;
   }
 }

@@ -1,4 +1,4 @@
-import { COMMAND } from "./constants/command";
+import { COMMAND, ERROR } from "./constants";
 import { assert } from "./utilities/assert";
 
 type Command = "/add" | "/subtract" | "/multiply" | "/divide";
@@ -18,6 +18,10 @@ class Expression {
   constructor(command: string, text: string) {
     this.operationType = Expression.getOperationType(command);
     [this.firstNumber, this.secondNumber] = Expression.getNumbers(text);
+  }
+
+  public toString(): string {
+    return `${this.firstNumber} ${this.getOperator()} ${this.secondNumber}`;
   }
 
   private static getOperationType(command: string): OperationType {
@@ -52,18 +56,32 @@ class Expression {
         command === COMMAND.SUBTRACT ||
         command === COMMAND.MULTIPLY ||
         command === COMMAND.DIVIDE,
-      `Command '${command}' is invalid. Valid options include '${COMMAND.ADD}', '${COMMAND.SUBTRACT}', '${COMMAND.MULTIPLY}' and '${COMMAND.DIVIDE}'.`
+      ERROR.INVALID_COMMAND(command)
     );
   }
 
   private static validateText(text: string): void {
-    const errorMessage = `Input '${text}' is not valid. Expected input to be of the form: 'num1 num2'.`;
+    const errorMessage = ERROR.INVALID_TEXT(text);
 
     const numbers = text.trim().split(" ");
     assert(numbers.length === 2, errorMessage);
 
     const [firstNumber, secondNumber] = numbers;
-    assert(!isNaN(+firstNumber) || !isNaN(+secondNumber), errorMessage);
+    assert(!isNaN(+firstNumber), errorMessage);
+    assert(!isNaN(+secondNumber), errorMessage);
+  }
+
+  private getOperator(): string {
+    switch (this.operationType) {
+      case OperationType.Add:
+        return "+";
+      case OperationType.Subtract:
+        return "-";
+      case OperationType.Multiply:
+        return "*";
+      case OperationType.Divide:
+        return "/";
+    }
   }
 }
 
