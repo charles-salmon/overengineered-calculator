@@ -1,11 +1,13 @@
+substitutions:
+  _NODE_VERSION: 10-jessie-slim
 steps:
-  - name: node:lts-stretch
+  - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["install"]
-  - name: node:lts-stretch
+  - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["build"]
-  - name: node:lts-stretch
+  - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["test"]
   - name: gcr.io/cloud-builders/gcloud
