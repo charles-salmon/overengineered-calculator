@@ -3,13 +3,15 @@ substitutions:
 steps:
   - name: node:$_NODE_VERSION
     entrypoint: yarn
-    args: ["install"]
   - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["build"]
   - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["test"]
+  - name: node:$_NODE_VERSION
+    entrypoint: yarn
+    args: ["--production"]
   - name: gcr.io/cloud-builders/gcloud
     args:
       [
@@ -17,6 +19,5 @@ steps:
         "deploy",
         "calculate",
         "--trigger-http",
-        "--runtime",
-        "nodejs10",
+        "--runtime=nodejs10",
       ]
