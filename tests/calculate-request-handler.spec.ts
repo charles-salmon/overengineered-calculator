@@ -53,7 +53,7 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("sets a status code of 400 if an error occurs while forming the expression", () => {
+      it("sets a status code of 200 if an error occurs while forming the expression", () => {
         // Arrange
         const command = "";
         const text = "";
@@ -79,7 +79,7 @@ describe("calculate-request-handler.ts", () => {
         sut.handleRequest();
 
         // Assert
-        mockResponse.verify(r => r.status(400), TypeMoq.Times.once());
+        mockResponse.verify(r => r.status(200), TypeMoq.Times.once());
       });
 
       it("sends the error message as part of the response if an error occurs while forming the expression", () => {
@@ -110,10 +110,16 @@ describe("calculate-request-handler.ts", () => {
         sut.handleRequest();
 
         // Assert
-        mockResponse.verify(r => r.send(errorMessage), TypeMoq.Times.once());
+        mockResponse.verify(
+          r =>
+            r.send(
+              TypeMoq.It.isObjectWith((b: any) => b.text === errorMessage)
+            ),
+          TypeMoq.Times.once()
+        );
       });
 
-      it("sets a status code of 400 if an error occurs while calculating the expression", () => {
+      it("sets a status code of 200 if an error occurs while calculating the expression", () => {
         // Arrange
         const command = "";
         const text = "";
@@ -139,7 +145,7 @@ describe("calculate-request-handler.ts", () => {
         sut.handleRequest();
 
         // Assert
-        mockResponse.verify(r => r.status(400), TypeMoq.Times.once());
+        mockResponse.verify(r => r.status(200), TypeMoq.Times.once());
       });
 
       it("sends the error message as part of the response if an error occurs while calculating the expression", () => {
@@ -170,7 +176,13 @@ describe("calculate-request-handler.ts", () => {
         sut.handleRequest();
 
         // Assert
-        mockResponse.verify(r => r.send(errorMessage), TypeMoq.Times.once());
+        mockResponse.verify(
+          r =>
+            r.send(
+              TypeMoq.It.isObjectWith((b: any) => b.text === errorMessage)
+            ),
+          TypeMoq.Times.once()
+        );
       });
 
       it("sets a status code of 200 if the expression was successfully calculated", () => {
@@ -224,7 +236,12 @@ describe("calculate-request-handler.ts", () => {
 
         // Assert
         mockResponse.verify(
-          r => r.send(calculationResult.toString()),
+          r =>
+            r.send(
+              TypeMoq.It.isObjectWith((b: any) =>
+                b.text.contains(calculationResult)
+              )
+            ),
           TypeMoq.Times.once()
         );
       });

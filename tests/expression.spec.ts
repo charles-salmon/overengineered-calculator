@@ -114,5 +114,73 @@ describe("expression.ts", () => {
         expect(action).toThrow();
       });
     });
+
+    describe("toString()", () => {
+      it("returns a string containing `this.firstNumber`", () => {
+        // Arrange
+        const sut = new Expression("/add", "5 4");
+
+        // Act
+        const result = sut.toString();
+
+        // Assert
+        expect(result).toContain(sut.firstNumber);
+      });
+
+      it("returns a string containing a '+' when `this.operationType === OperationType.Add`", () => {
+        // Arrange
+        const sut = new Expression("/add", "5 4");
+
+        // Act
+        const result = sut.toString();
+
+        // Assert
+        expect(result).toContain("+");
+      });
+
+      it("returns a string containing a '-' when `this.operationType === OperationType.Subtract`", () => {
+        // Arrange
+        const sut = new Expression("/subtract", "5 4");
+
+        // Act
+        const result = sut.toString();
+
+        // Assert
+        expect(result).toContain("-");
+      });
+
+      it("returns a string containing a '*' when `this.operationType === OperationType.Multiply`", () => {
+        // Arrange
+        const sut = new Expression("/multiply", "5 4");
+
+        // Act
+        const result = sut.toString();
+
+        // Assert
+        expect(result).toContain("*");
+      });
+
+      it("returns a string containing a '/' when `this.operationType === OperationType.Divide`", () => {
+        // Arrange
+        const sut = new Expression("/divide", "5 4");
+
+        // Act
+        const result = sut.toString();
+
+        // Assert
+        expect(result).toContain("/");
+      });
+
+      it("returns a string containing `this.secondNumber`", () => {
+        // Arrange
+        const sut = new Expression("/add", "5 4");
+
+        // Act
+        const result = sut.toString();
+
+        // Assert
+        expect(result).toContain(sut.secondNumber);
+      });
+    });
   });
 });

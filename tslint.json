@@ -22,7 +22,8 @@
           "private-instance-method"
         ]
       }
-    ]
+    ],
+    "interface-name": false
   },
   "linterOptions": {
     "exclude": ["node_modules/**"]
