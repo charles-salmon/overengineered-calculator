@@ -2,13 +2,16 @@ substitutions:
   _NODE_VERSION: 10-jessie-slim
 steps:
   - name: node:$_NODE_VERSION
+    id: yarn-install
     entrypoint: yarn
   - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["build"]
+    waitFor: ["yarn-install"]
   - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["test"]
+    waitFor: ["yarn-install"]
   - name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["--production"]
