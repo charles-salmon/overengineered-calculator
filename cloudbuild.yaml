@@ -1,26 +1,46 @@
 substitutions:
   _NODE_VERSION: 10-jessie-slim
+  _FUNCTION_ENTRY_POINT: calculate
+
 steps:
-  - name: node:$_NODE_VERSION
-    id: yarn-install
+  - id: Install Dependencies
+    name: node:$_NODE_VERSION
     entrypoint: yarn
-  - name: node:$_NODE_VERSION
+
+  - id: Build
+    name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["build"]
-    waitFor: ["yarn-install"]
-  - name: node:$_NODE_VERSION
+    waitFor: ["Install Dependencies"]
+
+  - id: Unit Test
+    name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["test"]
-    waitFor: ["yarn-install"]
-  - name: node:$_NODE_VERSION
+    waitFor: ["Install Dependencies"]
+
+  - id: Remove Development Dependencies
+    name: node:$_NODE_VERSION
     entrypoint: yarn
     args: ["--production"]
-  - name: gcr.io/cloud-builders/gcloud
+
+  - id: Deploy
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
     args:
-      [
-        "functions",
-        "deploy",
-        "calculate",
-        "--trigger-http",
-        "--runtime=nodejs10",
-      ]
+      - -c
+      - |
+        urlFriendlyBranchName=$(echo "$BRANCH_NAME" |
+          iconv -t ascii//TRANSLIT |
+          sed -r s/[^a-zA-Z0-9]+/-/g |
+          sed -r s/^-+\|-+$//g |
+          tr A-Z a-z)
+
+        functionName=$([ "$BRANCH_NAME" == "master" ] &&
+          echo "$_FUNCTION_ENTRY_POINT" ||
+          echo "${_FUNCTION_ENTRY_POINT}_$urlFriendlyBranchName")
+
+        gcloud functions deploy $functionName \
+          --trigger-http \
+          --runtime=nodejs10 \
+          --entry-point=$_FUNCTION_ENTRY_POINT
