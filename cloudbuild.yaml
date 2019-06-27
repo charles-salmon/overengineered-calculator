@@ -30,7 +30,7 @@ steps:
     args:
       - -c
       - |
-        if [ "$BRANCH_NAME" == "master" ] && [ ! -z "$TAG_NAME" ]; then
+        if [ ! -z "$TAG_NAME" ]; then
           functionName=$_FUNCTION_ENTRY_POINT
         elif [ "$BRANCH_NAME" != "master" ]; then
           urlFriendlyBranchName=$(echo "$BRANCH_NAME" |
