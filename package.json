@@ -3,17 +3,19 @@
   "version": "1.0.0",
   "description": "A cloud function which responds to Slack slash commands to perform basic numeric calculations.",
   "main": "lib/index.js",
-  "repository": "https://github.com/charles-salmon/overengineered-calculator",
+  "repository": "https://github.com/overengineeredcalculator/overengineered-calculator",
   "author": "Charles Salmon <charles.salmon@intranel.com>",
   "license": "MIT",
+  "dependencies": {
+    "inversify": "^5.0.1",
+    "reflect-metadata": "^0.1.13"
+  },
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.1.1",
     "@types/express": "^4.17.0",
     "@types/jest": "^24.0.15",
-    "inversify": "^5.0.1",
     "jest": "^24.8.0",
     "prettier": "^1.18.2",
-    "reflect-metadata": "^0.1.13",
     "rimraf": "^2.6.3",
     "ts-jest": "^24.0.2",
     "tslint": "^5.17.0",
@@ -23,7 +25,8 @@
   },
   "scripts": {
     "start": "functions-framework --target calculate",
-    "build": "rimraf lib && tsc",
+    "lint": "tslint --project .",
+    "build": "rimraf lib && tsc && yarn lint",
     "test": "jest"
   }
 }
