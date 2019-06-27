@@ -30,17 +30,21 @@ steps:
     args:
       - -c
       - |
-        urlFriendlyBranchName=$(echo "$BRANCH_NAME" |
-          iconv -t ascii//TRANSLIT |
-          sed -r s/[^a-zA-Z0-9]+/-/g |
-          sed -r s/^-+\|-+$//g |
-          tr A-Z a-z)
-
-        functionName=$([ "$BRANCH_NAME" == "master" ] &&
-          echo "$_FUNCTION_ENTRY_POINT" ||
-          echo "${_FUNCTION_ENTRY_POINT}_$urlFriendlyBranchName")
+        if [ "$BRANCH_NAME" == "master" ] && [ ! -z "$TAG_NAME" ]; then
+          functionName=$_FUNCTION_ENTRY_POINT
+        elif [ "$BRANCH_NAME" != "master" ]; then
+          urlFriendlyBranchName=$(echo "$BRANCH_NAME" |
+            iconv -t ascii//TRANSLIT |
+            sed -r s/[^a-zA-Z0-9]+/-/g |
+            sed -r s/^-+\|-+$//g |
+            tr A-Z a-z)
+          functionName="${_FUNCTION_ENTRY_POINT}_$urlFriendlyBranchName"
+        else
+          exit 0
+        fi
 
         gcloud functions deploy $functionName \
           --trigger-http \
           --runtime=nodejs10 \
-          --entry-point=$_FUNCTION_ENTRY_POINT
+          --entry-point=$_FUNCTION_ENTRY_POINT \
+          --update-labels=commit=$COMMIT_SHA
