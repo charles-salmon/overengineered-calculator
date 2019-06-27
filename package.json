@@ -21,7 +21,8 @@
   },
   "scripts": {
     "start": "functions-framework --target calculate",
-    "build": "rimraf lib && tsc",
+    "lint": "tslint --project .",
+    "build": "rimraf lib && tsc && yarn lint",
     "test": "jest"
   },
   "dependencies": {
