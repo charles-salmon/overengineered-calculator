@@ -1,5 +1,6 @@
 substitutions:
   _NODE_VERSION: 10-jessie-slim
+  _CLOUD_FUNCTION_RUNTIME: nodejs10
   _FUNCTION_ENTRY_POINT: calculate
   _STORAGE_BUCKET_NAME: overengineered-calculator
   _SLACK_SIGNING_SECRET_PATH: secrets/slack-cloud-function/slack-signing-secret
@@ -47,7 +48,7 @@ steps:
 
         gcloud functions deploy $functionName \
           --trigger-http \
-          --runtime=nodejs10 \
+          --runtime=$_CLOUD_FUNCTION_RUNTIME \
           --entry-point=$_FUNCTION_ENTRY_POINT \
           --update-labels=commit=$COMMIT_SHA \
           --set-env-vars=$environmentVariables
