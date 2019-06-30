@@ -7,7 +7,6 @@
   "author": "Charles Salmon <charles.salmon@intranel.com>",
   "license": "MIT",
   "dependencies": {
-    "crypto": "^1.0.1",
     "inversify": "^5.0.1",
     "reflect-metadata": "^0.1.13",
     "tsscmp": "^1.0.6"
