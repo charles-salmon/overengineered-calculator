@@ -4,9 +4,6 @@
 # Don't ignore project configuration
 !package.json
 
-# Don't ignore project dependencies
-!node_modules/**
-
 # Don't ignore build artifact
 !lib/**
 

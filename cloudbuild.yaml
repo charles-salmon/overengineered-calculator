@@ -19,11 +19,6 @@ steps:
     args: ["test"]
     waitFor: ["Install Dependencies"]
 
-  - id: Remove Development Dependencies
-    name: node:$_NODE_VERSION
-    entrypoint: yarn
-    args: ["--production"]
-
   - id: Deploy
     name: gcr.io/cloud-builders/gcloud
     entrypoint: bash
