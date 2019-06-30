@@ -1,6 +1,9 @@
 substitutions:
   _NODE_VERSION: 10-jessie-slim
   _FUNCTION_ENTRY_POINT: calculate
+  _STORAGE_BUCKET_NAME: overengineered-calculator
+  _SLACK_SIGNING_SECRET_PATH: secrets/slack-cloud-function/slack-signing-secret
+  _CRYPTO_KEY_PATH: projects/intranel-oc/locations/global/keyRings/overengineered-calculator/cryptoKeys/slack-cloud-function
 
 steps:
   - id: Install Dependencies
@@ -38,8 +41,13 @@ steps:
           exit 0
         fi
 
+        environmentVariables="STORAGE_BUCKET_NAME=$_STORAGE_BUCKET_NAME"
+        environmentVariables+=",SLACK_SIGNING_SECRET_PATH=$_SLACK_SIGNING_SECRET_PATH"
+        environmentVariables+=",CRYPTO_KEY_PATH=$_CRYPTO_KEY_PATH"
+
         gcloud functions deploy $functionName \
           --trigger-http \
           --runtime=nodejs10 \
           --entry-point=$_FUNCTION_ENTRY_POINT \
-          --update-labels=commit=$COMMIT_SHA
+          --update-labels=commit=$COMMIT_SHA \
+          --set-env-vars=$environmentVariables
