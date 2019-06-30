@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Container, interfaces } from "inversify";
 
-import { CalculateRequestHandler } from "./calculate-request-handler";
+import { SlackRequestSignatureValidator } from "./slack-request-signature-validator";
 
 class ContainerFactory {
   public static create(
@@ -10,11 +10,11 @@ class ContainerFactory {
   ): interfaces.Container {
     const container = new Container();
 
-    container.bind<Request>("Request").toConstantValue(request);
+    container.bind("Request").toConstantValue(request);
 
-    container.bind<Response>("Response").toConstantValue(response);
+    container.bind("Response").toConstantValue(response);
 
-    container.bind<CalculateRequestHandler>(CalculateRequestHandler).toSelf();
+    container.bind(SlackRequestSignatureValidator).toSelf();
 
     return container;
   }

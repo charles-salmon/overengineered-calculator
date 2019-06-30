@@ -7,13 +7,16 @@
   "author": "Charles Salmon <charles.salmon@intranel.com>",
   "license": "MIT",
   "dependencies": {
+    "crypto": "^1.0.1",
     "inversify": "^5.0.1",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "tsscmp": "^1.0.6"
   },
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.1.1",
     "@types/express": "^4.17.0",
     "@types/jest": "^24.0.15",
+    "@types/tsscmp": "^1.0.0",
     "jest": "^24.8.0",
     "prettier": "^1.18.2",
     "rimraf": "^2.6.3",

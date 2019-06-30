@@ -2,8 +2,9 @@ import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 
 import { Calculator } from "./calculator";
-import { FIELD_HEADING, SECTION_HEADING } from "./constants";
+import { ERROR, FIELD_HEADING, SECTION_HEADING } from "./constants";
 import { Expression } from "./expression";
+import { SlackRequestSignatureValidator } from "./slack-request-signature-validator";
 
 interface ResponseBody {
   blocks: SectionBlock[];
@@ -29,16 +30,25 @@ interface TextObject {
 class CalculateRequestHandler {
   private request: Request;
   private response: Response;
+  private slackRequestSignatureValidator: SlackRequestSignatureValidator;
 
   constructor(
     @inject("Request") request: Request,
-    @inject("Response") response: Response
+    @inject("Response") response: Response,
+    @inject(SlackRequestSignatureValidator)
+    slackRequestSignatureValidator: SlackRequestSignatureValidator
   ) {
     this.request = request;
     this.response = response;
+    this.slackRequestSignatureValidator = slackRequestSignatureValidator;
   }
 
   public handleRequest(): void {
+    if (!this.slackRequestSignatureValidator.isSignatureValid()) {
+      this.response.status(400).send(ERROR.INVALID_REQUEST_SIGNATURE);
+      return;
+    }
+
     const { command, text } = this.request.body;
 
     const responseBody: ResponseBody = {
@@ -117,4 +127,4 @@ class CalculateRequestHandler {
   }
 }
 
-export { CalculateRequestHandler };
+export { CalculateRequestHandler, ResponseBody, TextObject };

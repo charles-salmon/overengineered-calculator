@@ -1,126 +1,56 @@
 import { Request, Response } from "express";
-import { interfaces } from "inversify";
-import * as TypeMoq from "typemoq";
 
 import { CalculateRequestHandler } from "../src/calculate-request-handler";
 import { ContainerFactory } from "../src/container-factory";
+import { SlackRequestSignatureValidator } from "../src/slack-request-signature-validator";
 import { MockBuilder } from "./mock-builder";
 
-let mockContainer: TypeMoq.IMock<interfaces.Container>;
-
-jest.mock("inversify", () => ({
-  Container: jest.fn().mockImplementation(() => mockContainer.object),
-  inject: () => jest.fn(),
-  injectable: () => jest.fn()
-}));
-
 describe("container-factory.ts", () => {
-  beforeEach(() => {
-    mockContainer = new MockBuilder<interfaces.Container>().build();
-  });
-
   describe("ContainerFactory", () => {
     describe("create(request, response)", () => {
-      it("registers `request` as a singleton", () => {
-        // Arrange
-        const mockRequest = new MockBuilder<Request>().build();
-        const mockResponse = new MockBuilder<Response>().build();
+      let request: Request;
+      let response: Response;
 
-        const mockBinder = new MockBuilder<
-          interfaces.BindingToSyntax<Request>
-        >().build();
-
-        mockContainer
-          .setup(c => c.bind<Request>("Request"))
-          .returns(() => mockBinder.object);
-
-        mockContainer
-          .setup(c => c.bind<any>(TypeMoq.It.isAny()))
-          .returns(
-            () =>
-              new MockBuilder<interfaces.BindingToSyntax<any>>().build().object
-          );
-
-        // Act
-        ContainerFactory.create(mockRequest.object, mockResponse.object);
-
-        // Assert
-        mockContainer.verify(
-          c => c.bind<Request>("Request"),
-          TypeMoq.Times.once()
-        );
-
-        mockBinder.verify(
-          b => b.toConstantValue(mockRequest.object),
-          TypeMoq.Times.once()
-        );
+      beforeEach(() => {
+        request = new MockBuilder<Request>().build().object;
+        response = new MockBuilder<Response>().build().object;
+        process.env.SLACK_SIGNING_SECRET = undefined;
       });
 
-      it("registers `response` as a singleton", () => {
-        // Arrange
-        const mockRequest = new MockBuilder<Request>().build();
-        const mockResponse = new MockBuilder<Response>().build();
-
-        const mockBinder = new MockBuilder<
-          interfaces.BindingToSyntax<Response>
-        >().build();
-
-        mockContainer
-          .setup(c => c.bind<Response>("Response"))
-          .returns(() => mockBinder.object);
-
-        mockContainer
-          .setup(c => c.bind<any>(TypeMoq.It.isAny()))
-          .returns(
-            () =>
-              new MockBuilder<interfaces.BindingToSyntax<any>>().build().object
-          );
-
+      it("creates a container which can get `request` using the 'Request' service identifier", () => {
         // Act
-        ContainerFactory.create(mockRequest.object, mockResponse.object);
+        const container = ContainerFactory.create(request, response);
 
         // Assert
-        mockContainer.verify(
-          c => c.bind<Response>("Response"),
-          TypeMoq.Times.once()
-        );
-
-        mockBinder.verify(
-          b => b.toConstantValue(mockResponse.object),
-          TypeMoq.Times.once()
-        );
+        expect(container.get("Request")).toBe(request);
       });
 
-      it("registers `CalculateRequestHandler` as transient", () => {
-        // Arrange
-        const mockRequest = new MockBuilder<Request>().build();
-        const mockResponse = new MockBuilder<Response>().build();
-
-        const mockBinder = new MockBuilder<
-          interfaces.BindingToSyntax<CalculateRequestHandler>
-        >().build();
-
-        mockContainer
-          .setup(c => c.bind<CalculateRequestHandler>(CalculateRequestHandler))
-          .returns(() => mockBinder.object);
-
-        mockContainer
-          .setup(c => c.bind<any>(TypeMoq.It.isAny()))
-          .returns(
-            () =>
-              new MockBuilder<interfaces.BindingToSyntax<any>>().build().object
-          );
-
+      it("creates a container which can get `response` using the 'Response' service identifier", () => {
         // Act
-        ContainerFactory.create(mockRequest.object, mockResponse.object);
+        const container = ContainerFactory.create(request, response);
 
         // Assert
-        mockContainer.verify(
-          c => c.bind<CalculateRequestHandler>(CalculateRequestHandler),
-          TypeMoq.Times.once()
-        );
+        expect(container.get("Response")).toBe(response);
+      });
 
-        mockBinder.verify(b => b.toSelf(), TypeMoq.Times.once());
+      it("creates a container which can resolve a `SlackRequestSignatureValidator`", () => {
+        // Act
+        const container = ContainerFactory.create(request, response);
+
+        // Assert
+        expect(
+          container.resolve(SlackRequestSignatureValidator)
+        ).toBeInstanceOf(SlackRequestSignatureValidator);
+      });
+
+      it("creates a container which can resolve a `CalculateRequestHandler`", () => {
+        // Act
+        const container = ContainerFactory.create(request, response);
+
+        // Assert
+        expect(container.resolve(CalculateRequestHandler)).toBeInstanceOf(
+          CalculateRequestHandler
+        );
       });
     });
   });

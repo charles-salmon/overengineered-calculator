@@ -6,9 +6,7 @@ import { ContainerFactory } from "./container-factory";
 
 const calculate = (request: Request, response: Response): void => {
   const container = ContainerFactory.create(request, response);
-  const calculateRequestHandler = container.get<CalculateRequestHandler>(
-    CalculateRequestHandler
-  );
+  const calculateRequestHandler = container.resolve(CalculateRequestHandler);
   calculateRequestHandler.handleRequest();
 };
 
