@@ -11,6 +11,7 @@ import {
 import { Calculator as ActualCalculator } from "../src/calculator";
 import { ERROR, REQUIRED_ENVIRONMENT_VARIABLES } from "../src/constants";
 import { Expression as ActualExpression } from "../src/expression";
+import { SecretProvider } from "../src/secret-provider";
 import { SlackRequestSignatureValidator } from "../src/slack-request-signature-validator";
 import { MockBuilder } from "./mock-builder";
 
@@ -33,6 +34,7 @@ describe("calculate-request-handler.ts", () => {
     let mockSlackRequestSignatureValidator: TypeMoq.IMock<
       SlackRequestSignatureValidator
     >;
+    let mockSecretProvider: TypeMoq.IMock<SecretProvider>;
 
     beforeEach(() => {
       jest.resetAllMocks();
@@ -50,11 +52,14 @@ describe("calculate-request-handler.ts", () => {
       mockSlackRequestSignatureValidator = new MockBuilder<
         SlackRequestSignatureValidator
       >()
-        .with(srsv => srsv.isSignatureValid(), true)
+        .with(srsv => srsv.isSignatureValid(), Promise.resolve(true))
         .build();
       container
         .bind(SlackRequestSignatureValidator)
         .toConstantValue(mockSlackRequestSignatureValidator.object);
+
+      mockSecretProvider = new MockBuilder<SecretProvider>().build();
+      container.bind(SecretProvider).toConstantValue(mockSecretProvider.object);
 
       REQUIRED_ENVIRONMENT_VARIABLES.forEach(
         variable => (process.env[variable] = "some-value")
@@ -62,18 +67,18 @@ describe("calculate-request-handler.ts", () => {
     });
 
     describe("handleRequest()", () => {
-      it("loads environment variables from a `.env` file", () => {
+      it("loads environment variables from a `.env` file", async () => {
         // Arrange
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         expect(dotenv.config).toHaveBeenCalled();
       });
 
-      it("sets a status code of 500 if a required environment variable is not set", () => {
+      it("sets a status code of 500 if a required environment variable is not set", async () => {
         // Arrange
         delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
 
@@ -81,7 +86,7 @@ describe("calculate-request-handler.ts", () => {
 
         // Act
         try {
-          sut.handleRequest();
+          await sut.handleRequest();
         } catch (_) {
           // Gobble up the error.
         }
@@ -90,7 +95,7 @@ describe("calculate-request-handler.ts", () => {
         mockResponse.verify(r => r.status(500), TypeMoq.Times.once());
       });
 
-      it("sends an appropriate error message if a required environment variable is not set", () => {
+      it("sends an appropriate error message if a required environment variable is not set", async () => {
         // Arrange
         delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
 
@@ -98,7 +103,7 @@ describe("calculate-request-handler.ts", () => {
 
         // Act
         try {
-          sut.handleRequest();
+          await sut.handleRequest();
         } catch (_) {
           // Gobble up the error.
         }
@@ -110,27 +115,27 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("throws an error with an appropriate message if a required environment variable is not set", () => {
+      it("throws an error with an appropriate message if a required environment variable is not set", async () => {
         // Arrange
         delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
 
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        const action = () => sut.handleRequest();
+        const result = sut.handleRequest();
 
         // Assert
-        expect(action).toThrowError(
+        await expect(result).rejects.toThrowError(
           ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET
         );
       });
 
-      it("validates that the request contains a valid Slack request signature", () => {
+      it("validates that the request contains a valid Slack request signature", async () => {
         // Arrange
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         mockSlackRequestSignatureValidator.verify(
@@ -139,33 +144,33 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("sets a status code of 400 if the request does not contain a valid Slack request signature", () => {
+      it("sets a status code of 400 if the request does not contain a valid Slack request signature", async () => {
         // Arrange
         mockSlackRequestSignatureValidator.reset();
         mockSlackRequestSignatureValidator
           .setup(srsv => srsv.isSignatureValid())
-          .returns(() => false);
+          .returns(() => Promise.resolve(false));
 
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         mockResponse.verify(r => r.status(400), TypeMoq.Times.once());
       });
 
-      it("sends an appropriate error message if the request does not contain a valid Slack request signature", () => {
+      it("sends an appropriate error message if the request does not contain a valid Slack request signature", async () => {
         // Arrange
         mockSlackRequestSignatureValidator.reset();
         mockSlackRequestSignatureValidator
           .setup(srsv => srsv.isSignatureValid())
-          .returns(() => false);
+          .returns(() => Promise.resolve(false));
 
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         mockResponse.verify(
@@ -174,7 +179,7 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("uses the 'command' and 'text' provided in the request body to form an expression", () => {
+      it("uses the 'command' and 'text' provided in the request body to form an expression", async () => {
         // Arrange
         const command = "/add";
         const text = "5 4";
@@ -183,13 +188,13 @@ describe("calculate-request-handler.ts", () => {
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         expect(Expression).toHaveBeenCalledWith(command, text);
       });
 
-      it("calculates an expression", () => {
+      it("calculates an expression", async () => {
         // Arrange
         const command = "/add";
         const text = "5 4";
@@ -198,13 +203,13 @@ describe("calculate-request-handler.ts", () => {
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         expect(Calculator.calculate).toHaveBeenCalledTimes(1);
       });
 
-      it("sends the error message as part of the response if an error occurs while forming the expression", () => {
+      it("sends the error message as part of the response if an error occurs while forming the expression", async () => {
         // Arrange
         const errorMessage = "Insert error message here.";
         Expression.mockImplementation(() => {
@@ -214,7 +219,7 @@ describe("calculate-request-handler.ts", () => {
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         mockResponse.verify(
@@ -228,7 +233,7 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("sends the error message as part of the response if an error occurs while calculating the expression", () => {
+      it("sends the error message as part of the response if an error occurs while calculating the expression", async () => {
         // Arrange
         const errorMessage = "Insert error message here.";
         jest.spyOn(Calculator, "calculate").mockImplementation(_ => {
@@ -238,7 +243,7 @@ describe("calculate-request-handler.ts", () => {
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         mockResponse.verify(
@@ -252,23 +257,23 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("sets a status code of 200 if the request contains a valid Slack request signature", () => {
+      it("sets a status code of 200 if the request contains a valid Slack request signature", async () => {
         // Arrange
         mockSlackRequestSignatureValidator.reset();
         mockSlackRequestSignatureValidator
           .setup(srsv => srsv.isSignatureValid())
-          .returns(() => true);
+          .returns(() => Promise.resolve(true));
 
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         mockResponse.verify(r => r.status(200), TypeMoq.Times.once());
       });
 
-      it("includes the calculation in the response body", () => {
+      it("includes the calculation in the response body", async () => {
         // Arrange
         const calculation = 8;
         jest
@@ -278,7 +283,7 @@ describe("calculate-request-handler.ts", () => {
         const sut = container.resolve(CalculateRequestHandler);
 
         // Act
-        sut.handleRequest();
+        await sut.handleRequest();
 
         // Assert
         mockResponse.verify(

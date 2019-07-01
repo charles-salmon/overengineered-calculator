@@ -49,7 +49,7 @@ class CalculateRequestHandler {
     this.slackRequestSignatureValidator = slackRequestSignatureValidator;
   }
 
-  public handleRequest(): void {
+  public async handleRequest(): Promise<void> {
     dotenv.config();
 
     if (
@@ -63,7 +63,7 @@ class CalculateRequestHandler {
       throw new Error(ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET);
     }
 
-    if (!this.slackRequestSignatureValidator.isSignatureValid()) {
+    if (!(await this.slackRequestSignatureValidator.isSignatureValid())) {
       this.response.status(400).send(ERROR.INVALID_REQUEST_SIGNATURE);
       return;
     }

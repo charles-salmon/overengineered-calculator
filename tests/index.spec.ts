@@ -35,23 +35,19 @@ describe("index.ts", () => {
       mockContainer
         .setup(c => c.resolve(CalculateRequestHandler))
         .returns(() => mockCalculateRequestHandler.object);
-
-      process.env = {
-        SLACK_SIGNING_SECRET: "s3cr3t"
-      };
     });
 
-    it("creates a `Container`", () => {
+    it("creates a `Container`", async () => {
       // Act
-      calculate(mockRequest.object, mockResponse.object);
+      await calculate(mockRequest.object, mockResponse.object);
 
       // Assert
       expect(ContainerFactory.create).toHaveBeenCalledTimes(1);
     });
 
-    it("resolves a `CalculationRequestHandler` from the `Container`", () => {
+    it("resolves a `CalculationRequestHandler` from the `Container`", async () => {
       // Act
-      calculate(mockRequest.object, mockResponse.object);
+      await calculate(mockRequest.object, mockResponse.object);
 
       // Assert
       mockContainer.verify(
@@ -60,9 +56,9 @@ describe("index.ts", () => {
       );
     });
 
-    it("invokes the `handleRequest()` method on the resolved `CalculateRequestHandler`", () => {
+    it("invokes the `handleRequest()` method on the resolved `CalculateRequestHandler`", async () => {
       // Act
-      calculate(mockRequest.object, mockResponse.object);
+      await calculate(mockRequest.object, mockResponse.object);
 
       // Assert
       mockCalculateRequestHandler.verify(

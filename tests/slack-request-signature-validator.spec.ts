@@ -1,13 +1,13 @@
 import originalCrypto from "crypto";
-import { Request as OriginalRequest } from "express";
+import { Request } from "express";
 import { Container } from "inversify";
 import originalTimingSafeCompare from "tsscmp";
 import * as TypeMoq from "typemoq";
 
+import { REQUIRED_ENVIRONMENT_VARIABLES } from "../src/constants";
+import { DecryptSecretOptions, SecretProvider } from "../src/secret-provider";
 import { SlackRequestSignatureValidator } from "../src/slack-request-signature-validator";
 import { MockBuilder } from "./mock-builder";
-
-type Request = OriginalRequest & { rawBody: Buffer };
 
 jest.mock("crypto");
 const crypto = (originalCrypto as unknown) as typeof originalCrypto & jest.Mock;
@@ -20,11 +20,11 @@ describe("slack-request-signature-validator.ts", () => {
   describe("SlackRequestSignatureValidator", () => {
     const requestSignature = "signature-value-here";
     const hmacMessageDigest = "digest-value-here";
-    const slackSigningSecret = "";
 
     let container: Container;
     let mockRequest: TypeMoq.IMock<Request>;
     let mockHmac: TypeMoq.IMock<originalCrypto.Hmac>;
+    let mockSecretProvider: TypeMoq.IMock<SecretProvider>;
 
     beforeEach(() => {
       mockHmac = new MockBuilder<originalCrypto.Hmac>()
@@ -46,10 +46,17 @@ describe("slack-request-signature-validator.ts", () => {
         })
         .build();
       container.bind("Request").toConstantValue(mockRequest.object);
+
+      mockSecretProvider = new MockBuilder<SecretProvider>().build();
+      container.bind(SecretProvider).toConstantValue(mockSecretProvider.object);
+
+      REQUIRED_ENVIRONMENT_VARIABLES.forEach(
+        variable => delete process.env[variable]
+      );
     });
 
     describe("isSignatureValid()", () => {
-      it("returns `false` if an 'x-slack-signature' header is not set", () => {
+      it("returns `false` if an 'x-slack-signature' header is not set", async () => {
         // Arrange
         const originalHeaders = mockRequest.object.headers;
         mockRequest
@@ -62,13 +69,13 @@ describe("slack-request-signature-validator.ts", () => {
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        const result = sut.isSignatureValid();
+        const result = await sut.isSignatureValid();
 
         // Assert
         expect(result).toBe(false);
       });
 
-      it("returns `false` if an 'x-slack-request-timestamp' is not set", () => {
+      it("returns `false` if an 'x-slack-request-timestamp' is not set", async () => {
         // Arrange
         const originalHeaders = mockRequest.object.headers;
         mockRequest
@@ -81,13 +88,13 @@ describe("slack-request-signature-validator.ts", () => {
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        const result = sut.isSignatureValid();
+        const result = await sut.isSignatureValid();
 
         // Assert
         expect(result).toBe(false);
       });
 
-      it("returns `false` if the 'x-slack-request-timestamp' is greater than 5 minutes ago", () => {
+      it("returns `false` if the 'x-slack-request-timestamp' is greater than 5 minutes ago", async () => {
         // Arrange
         const originalHeaders = mockRequest.object.headers;
         mockRequest
@@ -100,18 +107,45 @@ describe("slack-request-signature-validator.ts", () => {
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        const result = sut.isSignatureValid();
+        const result = await sut.isSignatureValid();
 
         // Assert
         expect(result).toBe(false);
       });
 
-      it("creates a SHA-256 HMAC, using the Slack signing secret", () => {
+      it("decrypts the Slack signing secret", async () => {
         // Arrange
+        const pathToSlackSigningSecret = "some-path";
+        process.env.SLACK_SIGNING_SECRET_PATH = pathToSlackSigningSecret;
+
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        sut.isSignatureValid();
+        await sut.isSignatureValid();
+
+        // Assert
+        mockSecretProvider.verify(
+          sp =>
+            sp.decryptSecretFromFile(
+              TypeMoq.It.is<DecryptSecretOptions>(
+                o => o.filename === pathToSlackSigningSecret
+              )
+            ),
+          TypeMoq.Times.once()
+        );
+      });
+
+      it("creates a SHA-256 HMAC, using the Slack signing secret", async () => {
+        // Arrange
+        const slackSigningSecret = "s3cr3t";
+        mockSecretProvider
+          .setup(sp => sp.decryptSecretFromFile(TypeMoq.It.isAny()))
+          .returns(() => Promise.resolve(slackSigningSecret));
+
+        const sut = container.resolve(SlackRequestSignatureValidator);
+
+        // Act
+        await sut.isSignatureValid();
 
         // Assert
         expect(crypto.createHmac).toHaveBeenCalledWith(
@@ -120,7 +154,7 @@ describe("slack-request-signature-validator.ts", () => {
         );
       });
 
-      it("updates the HMAC with a message containing the raw request body", () => {
+      it("updates the HMAC with a message containing the raw request body", async () => {
         // Arrange
         const rawBody = Buffer.from("some-request-body-here");
         mockRequest.setup(r => r.rawBody).returns(() => rawBody);
@@ -128,7 +162,7 @@ describe("slack-request-signature-validator.ts", () => {
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        sut.isSignatureValid();
+        await sut.isSignatureValid();
 
         // Assert
         mockHmac.verify(
@@ -140,23 +174,23 @@ describe("slack-request-signature-validator.ts", () => {
         );
       });
 
-      it("takes a message digest from the HMAC using the 'hex' encoding", () => {
+      it("takes a message digest from the HMAC using the 'hex' encoding", async () => {
         // Arrange
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        sut.isSignatureValid();
+        await sut.isSignatureValid();
 
         // Assert
         mockHmac.verify(h => h.digest("hex"), TypeMoq.Times.once());
       });
 
-      it("compares the request signature against a value containing the HMAC's message digest", () => {
+      it("compares the request signature against a value containing the HMAC's message digest", async () => {
         // Arrange
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        sut.isSignatureValid();
+        await sut.isSignatureValid();
 
         // Assert
         expect(timingSafeCompare).toHaveBeenCalledWith(
@@ -165,27 +199,27 @@ describe("slack-request-signature-validator.ts", () => {
         );
       });
 
-      it("returns `false` if the request signature is not equal to the value containing the HMAC's message digest", () => {
+      it("returns `false` if the request signature is not equal to the value containing the HMAC's message digest", async () => {
         // Arrange
         timingSafeCompare.mockImplementation(() => false);
 
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        const result = sut.isSignatureValid();
+        const result = await sut.isSignatureValid();
 
         // Assert
         expect(result).toBe(false);
       });
 
-      it("returns `true` if the request signature is equal to the value containing the HMAC's message digest", () => {
+      it("returns `true` if the request signature is equal to the value containing the HMAC's message digest", async () => {
         // Arrange
         timingSafeCompare.mockImplementation(() => true);
 
         const sut = container.resolve(SlackRequestSignatureValidator);
 
         // Act
-        const result = sut.isSignatureValid();
+        const result = await sut.isSignatureValid();
 
         // Assert
         expect(result).toBe(true);

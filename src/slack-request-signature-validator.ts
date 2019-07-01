@@ -3,17 +3,22 @@ import { Request } from "express";
 import { inject, injectable } from "inversify";
 import timingSafeCompare from "tsscmp";
 
+import { SecretProvider } from "./secret-provider";
+
 @injectable()
 class SlackRequestSignatureValidator {
-  private slackSigningSecret: string;
+  private secretProvider: SecretProvider;
   private request: Request;
 
-  constructor(@inject("Request") request: Request) {
-    this.slackSigningSecret = "";
+  constructor(
+    @inject(SecretProvider) secretProvider: SecretProvider,
+    @inject("Request") request: Request
+  ) {
+    this.secretProvider = secretProvider;
     this.request = request;
   }
 
-  public isSignatureValid(): boolean {
+  public async isSignatureValid(): Promise<boolean> {
     const { headers } = this.request;
     const requestSignature = headers["x-slack-signature"] as string | undefined;
     const requestTimestamp = headers["x-slack-request-timestamp"];
@@ -30,8 +35,13 @@ class SlackRequestSignatureValidator {
     const { rawBody } = this.request as Request & {
       rawBody: Buffer;
     };
+    const slackSigningSecret = await this.secretProvider.decryptSecretFromFile({
+      bucketName: process.env.STORAGE_BUCKET_NAME,
+      cryptoKeyPath: process.env.CRYPTO_KEY_PATH,
+      filename: process.env.SLACK_SIGNING_SECRET_PATH
+    });
     const hmac = crypto
-      .createHmac("sha256", this.slackSigningSecret)
+      .createHmac("sha256", slackSigningSecret)
       .update(`${version}:${requestTimestamp}:${rawBody}`);
     const computedSignature = `${version}=${hmac.digest("hex")}`;
     if (!timingSafeCompare(requestSignature, computedSignature)) {

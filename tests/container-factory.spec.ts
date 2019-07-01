@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 
 import { CalculateRequestHandler } from "../src/calculate-request-handler";
 import { ContainerFactory } from "../src/container-factory";
+import { SecretProvider } from "../src/secret-provider";
 import { SlackRequestSignatureValidator } from "../src/slack-request-signature-validator";
 import { MockBuilder } from "./mock-builder";
 
@@ -41,6 +42,16 @@ describe("container-factory.ts", () => {
         expect(
           container.resolve(SlackRequestSignatureValidator)
         ).toBeInstanceOf(SlackRequestSignatureValidator);
+      });
+
+      it("creates a container which can resolve a `SecretProvider`", () => {
+        // Act
+        const container = ContainerFactory.create(request, response);
+
+        // Assert
+        expect(container.resolve(SecretProvider)).toBeInstanceOf(
+          SecretProvider
+        );
       });
 
       it("creates a container which can resolve a `CalculateRequestHandler`", () => {
