@@ -32,9 +32,7 @@ class SlackRequestSignatureValidator {
     }
 
     const [version] = requestSignature.split("=");
-    const { rawBody } = this.request as Request & {
-      rawBody: Buffer;
-    };
+    const { rawBody } = this.request;
     const slackSigningSecret = await this.secretProvider.decryptSecretFromFile({
       bucketName: process.env.STORAGE_BUCKET_NAME,
       cryptoKeyPath: process.env.CRYPTO_KEY_PATH,
