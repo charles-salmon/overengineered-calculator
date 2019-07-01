@@ -10,10 +10,6 @@ import { MockBuilder } from "./mock-builder";
 jest.mock("../src/container-factory");
 
 describe("index.ts", () => {
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
   describe("calculate(request, response)", () => {
     let mockRequest: TypeMoq.IMock<Request>;
     let mockResponse: TypeMoq.IMock<Response>;
@@ -21,6 +17,8 @@ describe("index.ts", () => {
     let mockCalculateRequestHandler: TypeMoq.IMock<CalculateRequestHandler>;
 
     beforeEach(() => {
+      jest.resetAllMocks();
+
       mockRequest = new MockBuilder<Request>().build();
       mockResponse = new MockBuilder<Response>().build();
 
