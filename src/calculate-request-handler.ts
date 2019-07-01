@@ -1,8 +1,14 @@
+import dotenv from "dotenv";
 import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 
 import { Calculator } from "./calculator";
-import { ERROR, FIELD_HEADING, SECTION_HEADING } from "./constants";
+import {
+  ERROR,
+  FIELD_HEADING,
+  REQUIRED_ENVIRONMENT_VARIABLES,
+  SECTION_HEADING
+} from "./constants";
 import { Expression } from "./expression";
 import { SlackRequestSignatureValidator } from "./slack-request-signature-validator";
 
@@ -44,6 +50,19 @@ class CalculateRequestHandler {
   }
 
   public handleRequest(): void {
+    dotenv.config();
+
+    if (
+      !REQUIRED_ENVIRONMENT_VARIABLES.every(variable =>
+        Object.keys(process.env).some(key => key === variable)
+      )
+    ) {
+      this.response
+        .status(500)
+        .send(ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET);
+      throw new Error(ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET);
+    }
+
     if (!this.slackRequestSignatureValidator.isSignatureValid()) {
       this.response.status(400).send(ERROR.INVALID_REQUEST_SIGNATURE);
       return;

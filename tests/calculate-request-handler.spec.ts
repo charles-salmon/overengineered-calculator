@@ -1,3 +1,4 @@
+import originalDotenv from "dotenv";
 import { Request, Response } from "express";
 import { Container } from "inversify";
 import * as TypeMoq from "typemoq";
@@ -8,10 +9,13 @@ import {
   TextObject
 } from "../src/calculate-request-handler";
 import { Calculator as ActualCalculator } from "../src/calculator";
-import { ERROR } from "../src/constants";
+import { ERROR, REQUIRED_ENVIRONMENT_VARIABLES } from "../src/constants";
 import { Expression as ActualExpression } from "../src/expression";
 import { SlackRequestSignatureValidator } from "../src/slack-request-signature-validator";
 import { MockBuilder } from "./mock-builder";
+
+jest.mock("dotenv");
+const dotenv = (originalDotenv as unknown) as typeof originalDotenv & jest.Mock;
 
 jest.mock("../src/calculator");
 const Calculator = (ActualCalculator as unknown) as typeof ActualCalculator &
@@ -31,6 +35,8 @@ describe("calculate-request-handler.ts", () => {
     >;
 
     beforeEach(() => {
+      jest.resetAllMocks();
+
       container = new Container();
 
       mockRequest = new MockBuilder<Request>().build();
@@ -49,13 +55,76 @@ describe("calculate-request-handler.ts", () => {
       container
         .bind(SlackRequestSignatureValidator)
         .toConstantValue(mockSlackRequestSignatureValidator.object);
-    });
 
-    afterEach(() => {
-      jest.resetAllMocks();
+      REQUIRED_ENVIRONMENT_VARIABLES.forEach(
+        variable => (process.env[variable] = "some-value")
+      );
     });
 
     describe("handleRequest()", () => {
+      it("loads environment variables from a `.env` file", () => {
+        // Arrange
+        const sut = container.resolve(CalculateRequestHandler);
+
+        // Act
+        sut.handleRequest();
+
+        // Assert
+        expect(dotenv.config).toHaveBeenCalled();
+      });
+
+      it("sets a status code of 500 if a required environment variable is not set", () => {
+        // Arrange
+        delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
+
+        const sut = container.resolve(CalculateRequestHandler);
+
+        // Act
+        try {
+          sut.handleRequest();
+        } catch (_) {
+          // Gobble up the error.
+        }
+
+        // Assert
+        mockResponse.verify(r => r.status(500), TypeMoq.Times.once());
+      });
+
+      it("sends an appropriate error message if a required environment variable is not set", () => {
+        // Arrange
+        delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
+
+        const sut = container.resolve(CalculateRequestHandler);
+
+        // Act
+        try {
+          sut.handleRequest();
+        } catch (_) {
+          // Gobble up the error.
+        }
+
+        // Assert
+        mockResponse.verify(
+          r => r.send(ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET),
+          TypeMoq.Times.once()
+        );
+      });
+
+      it("throws an error with an appropriate message if a required environment variable is not set", () => {
+        // Arrange
+        delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
+
+        const sut = container.resolve(CalculateRequestHandler);
+
+        // Act
+        const action = () => sut.handleRequest();
+
+        // Assert
+        expect(action).toThrowError(
+          ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET
+        );
+      });
+
       it("validates that the request contains a valid Slack request signature", () => {
         // Arrange
         const sut = container.resolve(CalculateRequestHandler);

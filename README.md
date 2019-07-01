@@ -14,3 +14,15 @@ It utilizes these technologies in the following way:
 - The Google Cloud Function is written using InversifyJS to manage dependencies, in an easily testible way.
 - A Slack App is configured with `/add num1 num2`, `/subtract num1 num2`, `/multiply num1 num2` and `/divide num1 num2` slash commands.
 - The slash commands invoke the Google Cloud Function to return the result of the calculation.
+
+## Environment Variables
+
+In order to execute this cloud function, the following environment variables must be set:
+
+| Variable                    | Description                                                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STORAGE_BUCKET_NAME`       | The Cloud Storage bucket used to store secrets required by the Cloud Function.                                                                  |
+| `SLACK_SIGNING_SECRET_PATH` | The path to the encrypted Slack signing secret, stored in the Cloud Storage bucket associated with `STORAGE_BUCKET_NAME`.                       |
+| `CRYPTO_KEY_PATH`           | The path to the KMS crypto key, which was used to encrypt the secrets stored in the Cloud Storage bucket associated with `STORAGE_BUCKET_NAME`. |
+
+Any environment variables defined in a `.env` file stored at the root of this repository will be configured prior to executing the cloud function.
