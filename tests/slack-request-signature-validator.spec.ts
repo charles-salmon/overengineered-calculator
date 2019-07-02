@@ -35,8 +35,6 @@ describe("slack-request-signature-validator.ts", () => {
         (_, __) => mockHmac.object
       );
 
-      timingSafeCompare.mockImplementation(() => true);
-
       container = new Container();
 
       mockRequest = new MockBuilder<Request>()
@@ -59,6 +57,7 @@ describe("slack-request-signature-validator.ts", () => {
       it("returns `false` if an 'x-slack-signature' header is not set", async () => {
         // Arrange
         const originalHeaders = mockRequest.object.headers;
+        mockRequest.reset();
         mockRequest
           .setup(r => r.headers)
           .returns(() => ({
@@ -78,6 +77,7 @@ describe("slack-request-signature-validator.ts", () => {
       it("returns `false` if an 'x-slack-request-timestamp' is not set", async () => {
         // Arrange
         const originalHeaders = mockRequest.object.headers;
+        mockRequest.reset();
         mockRequest
           .setup(r => r.headers)
           .returns(() => ({
@@ -97,11 +97,12 @@ describe("slack-request-signature-validator.ts", () => {
       it("returns `false` if the 'x-slack-request-timestamp' is greater than 5 minutes ago", async () => {
         // Arrange
         const originalHeaders = mockRequest.object.headers;
+        mockRequest.reset();
         mockRequest
           .setup(r => r.headers)
           .returns(() => ({
             ...originalHeaders,
-            "x-slack-request-timestamp": "0"
+            "x-slack-request-timestamp": "1" // 0 would be falsy
           }));
 
         const sut = container.resolve(SlackRequestSignatureValidator);
@@ -138,6 +139,7 @@ describe("slack-request-signature-validator.ts", () => {
       it("creates a SHA-256 HMAC, using the Slack signing secret", async () => {
         // Arrange
         const slackSigningSecret = "s3cr3t";
+        mockSecretProvider.reset();
         mockSecretProvider
           .setup(sp => sp.decryptSecretFromFile(TypeMoq.It.isAny()))
           .returns(() => Promise.resolve(slackSigningSecret));
