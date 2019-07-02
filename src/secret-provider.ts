@@ -27,17 +27,36 @@ class SecretProvider {
   ): Promise<string> {
     const { bucketName, filename, cryptoKeyPath } = options;
 
-    const ciphertext = (await this.storageClient
+    const fileBuffer = await this.downloadFile(bucketName, filename);
+    const ciphertext = fileBuffer.toString("base64");
+    const plaintextBuffer = await this.decrypt(ciphertext, cryptoKeyPath);
+    const plaintext = plaintextBuffer.toString("utf8").trim();
+
+    return plaintext;
+  }
+
+  private async downloadFile(
+    bucketName: string,
+    filename: string
+  ): Promise<Buffer> {
+    const fileTuple: [Buffer] = await this.storageClient
       .bucket(bucketName)
       .file(filename)
-      .download())[0].toString("base64");
+      .download();
 
-    return (await this.kmsClient.decrypt({
+    return fileTuple[0];
+  }
+
+  private async decrypt(
+    ciphertext: string,
+    cryptoKeyPath: string
+  ): Promise<Buffer> {
+    const decryptTuple: [{ plaintext: Buffer }] = await this.kmsClient.decrypt({
       ciphertext,
       name: cryptoKeyPath
-    }))[0].plaintext
-      .toString("utf8")
-      .trim();
+    });
+
+    return decryptTuple[0].plaintext;
   }
 }
 
