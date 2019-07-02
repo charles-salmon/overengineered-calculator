@@ -45,6 +45,7 @@ describe("calculate-request-handler.ts", () => {
       container.bind("Request").toConstantValue(mockRequest.object);
 
       mockResponse = new MockBuilder<Response>()
+        .with(r => r.statusCode, 200)
         .with(r => r.status(TypeMoq.It.isAny()), mock => mock.object)
         .build();
       container.bind("Response").toConstantValue(mockResponse.object);
@@ -78,8 +79,25 @@ describe("calculate-request-handler.ts", () => {
         expect(dotenv.config).toHaveBeenCalled();
       });
 
-      it("sets a status code of 500 if a required environment variable is not set", async () => {
+      it("returns with a status code of 500 and sends an appropriate message if a required environment variable is not set", async () => {
         // Arrange
+        let finalStatusCode: number = mockResponse.object.statusCode;
+
+        mockResponse.reset();
+        mockResponse.setup(r => r.statusCode).returns(() => finalStatusCode);
+        mockResponse
+          .setup(r => r.status(TypeMoq.It.isAny()))
+          .callback(statusCode => {
+            finalStatusCode = statusCode;
+          })
+          .returns(() => mockResponse.object);
+        mockResponse
+          .setup(r => r.sendStatus(TypeMoq.It.isAny()))
+          .callback(statusCode => {
+            finalStatusCode = statusCode;
+          })
+          .returns(() => mockResponse.object);
+
         delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
 
         const sut = container.resolve(CalculateRequestHandler);
@@ -92,27 +110,8 @@ describe("calculate-request-handler.ts", () => {
         }
 
         // Assert
-        mockResponse.verify(r => r.status(500), TypeMoq.Times.once());
-      });
-
-      it("sends an appropriate error message if a required environment variable is not set", async () => {
-        // Arrange
-        delete process.env[REQUIRED_ENVIRONMENT_VARIABLES[0]];
-
-        const sut = container.resolve(CalculateRequestHandler);
-
-        // Act
-        try {
-          await sut.handleRequest();
-        } catch (_) {
-          // Gobble up the error.
-        }
-
-        // Assert
-        mockResponse.verify(
-          r => r.send(ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET),
-          TypeMoq.Times.once()
-        );
+        mockResponse.verify(r => r.sendStatus(500), TypeMoq.Times.once());
+        expect(finalStatusCode).toBe(500);
       });
 
       it("throws an error with an appropriate message if a required environment variable is not set", async () => {
@@ -144,8 +143,75 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("sets a status code of 400 if the request does not contain a valid Slack request signature", async () => {
+      it("returns with a status code of 500 and sends an appropriate message if an internal error occurs while determining whether or not the Slack request signature is valid", async () => {
         // Arrange
+        let finalStatusCode: number = mockResponse.object.statusCode;
+
+        mockResponse.reset();
+        mockResponse.setup(r => r.statusCode).returns(() => finalStatusCode);
+        mockResponse
+          .setup(r => r.status(TypeMoq.It.isAny()))
+          .callback(statusCode => {
+            finalStatusCode = statusCode;
+          })
+          .returns(() => mockResponse.object);
+        mockResponse
+          .setup(r => r.sendStatus(TypeMoq.It.isAny()))
+          .callback(statusCode => {
+            finalStatusCode = statusCode;
+          })
+          .returns(() => mockResponse.object);
+
+        mockSlackRequestSignatureValidator.reset();
+        mockSlackRequestSignatureValidator
+          .setup(srsv => srsv.isSignatureValid())
+          .throws(new Error());
+
+        const sut = container.resolve(CalculateRequestHandler);
+
+        // Act
+        try {
+          await sut.handleRequest();
+        } catch (_) {
+          // Gobble up the error.
+        }
+
+        // Assert
+        mockResponse.verify(r => r.sendStatus(500), TypeMoq.Times.once());
+        expect(finalStatusCode).toBe(500);
+      });
+
+      it("rethrows the error if an internal error occurs while determining whether or not the Slack request signature is valid", async () => {
+        // Arrange
+        const error = new Error("some-error-message");
+
+        mockSlackRequestSignatureValidator.reset();
+        mockSlackRequestSignatureValidator
+          .setup(srsv => srsv.isSignatureValid())
+          .throws(error);
+
+        const sut = container.resolve(CalculateRequestHandler);
+
+        // Act
+        const result = sut.handleRequest();
+
+        // Assert
+        await expect(result).rejects.toThrowError(error);
+      });
+
+      it("returns with a status code of 400 if the request does not contain a valid Slack request signature", async () => {
+        // Arrange
+        let finalStatusCode: number = mockResponse.object.statusCode;
+
+        mockResponse.reset();
+        mockResponse.setup(r => r.statusCode).returns(() => finalStatusCode);
+        mockResponse
+          .setup(r => r.status(TypeMoq.It.isAny()))
+          .callback(statusCode => {
+            finalStatusCode = statusCode;
+          })
+          .returns(() => mockResponse.object);
+
         mockSlackRequestSignatureValidator.reset();
         mockSlackRequestSignatureValidator
           .setup(srsv => srsv.isSignatureValid())
@@ -158,6 +224,7 @@ describe("calculate-request-handler.ts", () => {
 
         // Assert
         mockResponse.verify(r => r.status(400), TypeMoq.Times.once());
+        expect(finalStatusCode).toBe(400);
       });
 
       it("sends an appropriate error message if the request does not contain a valid Slack request signature", async () => {
@@ -257,8 +324,19 @@ describe("calculate-request-handler.ts", () => {
         );
       });
 
-      it("sets a status code of 200 if the request contains a valid Slack request signature", async () => {
+      it("returns with a status code of 200 if the request contains a valid Slack request signature", async () => {
         // Arrange
+        let finalStatusCode: number = mockResponse.object.statusCode;
+
+        mockResponse.reset();
+        mockResponse.setup(r => r.statusCode).returns(() => finalStatusCode);
+        mockResponse
+          .setup(r => r.status(TypeMoq.It.isAny()))
+          .callback(statusCode => {
+            finalStatusCode = statusCode;
+          })
+          .returns(() => mockResponse.object);
+
         mockSlackRequestSignatureValidator.reset();
         mockSlackRequestSignatureValidator
           .setup(srsv => srsv.isSignatureValid())
@@ -271,6 +349,7 @@ describe("calculate-request-handler.ts", () => {
 
         // Assert
         mockResponse.verify(r => r.status(200), TypeMoq.Times.once());
+        expect(finalStatusCode).toBe(200);
       });
 
       it("includes the calculation in the response body", async () => {
