@@ -1,6 +1,8 @@
 substitutions:
   _NODE_VERSION: 10-jessie-slim
-  _FUNCTION_ENTRY_POINT: calculate
+  _CLOUD_FUNCTION_RUNTIME: nodejs10
+  _CLOUD_FUNCTION_ENTRY_POINT: calculate
+  _CLOUD_FUNCTION_ENV_VARS_FILE: env-vars.yaml
 
 steps:
   - id: Install Dependencies
@@ -19,11 +21,6 @@ steps:
     args: ["test"]
     waitFor: ["Install Dependencies"]
 
-  - id: Remove Development Dependencies
-    name: node:$_NODE_VERSION
-    entrypoint: yarn
-    args: ["--production"]
-
   - id: Deploy
     name: gcr.io/cloud-builders/gcloud
     entrypoint: bash
@@ -31,20 +28,21 @@ steps:
       - -c
       - |
         if [ ! -z "$TAG_NAME" ]; then
-          functionName=$_FUNCTION_ENTRY_POINT
+          functionName=$_CLOUD_FUNCTION_ENTRY_POINT
         elif [ "$BRANCH_NAME" != "master" ]; then
           urlFriendlyBranchName=$(echo "$BRANCH_NAME" |
             iconv -t ascii//TRANSLIT |
             sed -r s/[^a-zA-Z0-9]+/-/g |
             sed -r s/^-+\|-+$//g |
             tr A-Z a-z)
-          functionName="${_FUNCTION_ENTRY_POINT}_$urlFriendlyBranchName"
+          functionName="${_CLOUD_FUNCTION_ENTRY_POINT}_$urlFriendlyBranchName"
         else
           exit 0
         fi
 
         gcloud functions deploy $functionName \
           --trigger-http \
-          --runtime=nodejs10 \
-          --entry-point=$_FUNCTION_ENTRY_POINT \
-          --update-labels=commit=$COMMIT_SHA
+          --runtime=$_CLOUD_FUNCTION_RUNTIME \
+          --entry-point=$_CLOUD_FUNCTION_ENTRY_POINT \
+          --update-labels=commit=$COMMIT_SHA \
+          --env-vars-file=$_CLOUD_FUNCTION_ENV_VARS_FILE

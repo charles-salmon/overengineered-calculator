@@ -4,12 +4,13 @@ import "reflect-metadata";
 import { CalculateRequestHandler } from "./calculate-request-handler";
 import { ContainerFactory } from "./container-factory";
 
-const calculate = (request: Request, response: Response): void => {
+const calculate = async (
+  request: Request,
+  response: Response
+): Promise<void> => {
   const container = ContainerFactory.create(request, response);
-  const calculateRequestHandler = container.get<CalculateRequestHandler>(
-    CalculateRequestHandler
-  );
-  calculateRequestHandler.handleRequest();
+  const calculateRequestHandler = container.resolve(CalculateRequestHandler);
+  await calculateRequestHandler.handleRequest();
 };
 
 export { calculate };

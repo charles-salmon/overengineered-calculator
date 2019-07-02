@@ -1,0 +1,3 @@
+STORAGE_BUCKET_NAME: overengineered-calculator
+SLACK_SIGNING_SECRET_PATH: secrets/slack-cloud-function/slack-signing-secret
+CRYPTO_KEY_PATH: projects/intranel-oc/locations/global/keyRings/overengineered-calculator/cryptoKeys/slack-cloud-function

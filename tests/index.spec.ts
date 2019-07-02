@@ -7,65 +7,56 @@ import { CalculateRequestHandler } from "../src/calculate-request-handler";
 import { ContainerFactory } from "../src/container-factory";
 import { MockBuilder } from "./mock-builder";
 
-let mockCalculateRequestHandler: TypeMoq.IMock<CalculateRequestHandler>;
-let mockContainer: TypeMoq.IMock<interfaces.Container>;
-
-jest.mock("../src/container-factory", () => ({
-  ContainerFactory: {
-    create: () => mockContainer.object
-  }
-}));
+jest.mock("../src/container-factory");
 
 describe("index.ts", () => {
-  beforeEach(() => {
-    mockCalculateRequestHandler = new MockBuilder(
-      CalculateRequestHandler
-    ).build();
+  describe("calculate(request, response)", () => {
+    let mockRequest: TypeMoq.IMock<Request>;
+    let mockResponse: TypeMoq.IMock<Response>;
+    let mockContainer: TypeMoq.IMock<interfaces.Container>;
+    let mockCalculateRequestHandler: TypeMoq.IMock<CalculateRequestHandler>;
 
-    mockContainer = new MockBuilder<interfaces.Container>()
-      .with(
-        c => c.get<CalculateRequestHandler>(CalculateRequestHandler),
-        mockCalculateRequestHandler.object
-      )
-      .build();
-  });
+    beforeEach(() => {
+      jest.resetAllMocks();
 
-  describe("calculate()", () => {
-    it("creates a `Container`", () => {
-      // Arrange
-      const spy = jest.spyOn(ContainerFactory, "create");
-      const mockRequest = new MockBuilder<Request>().build();
-      const mockResponse = new MockBuilder<Response>().build();
+      mockRequest = new MockBuilder<Request>().build();
+      mockResponse = new MockBuilder<Response>().build();
 
-      // Act
-      calculate(mockRequest.object, mockResponse.object);
+      mockContainer = new MockBuilder<interfaces.Container>().build();
+      jest
+        .spyOn(ContainerFactory, "create")
+        .mockImplementation(() => mockContainer.object);
 
-      // Assert
-      expect(spy).toBeCalledTimes(1);
+      mockCalculateRequestHandler = new MockBuilder<
+        CalculateRequestHandler
+      >().build();
+      mockContainer
+        .setup(c => c.resolve(CalculateRequestHandler))
+        .returns(() => mockCalculateRequestHandler.object);
     });
 
-    it("resolves a `CalculationRequestHandler` from the `Container`", () => {
-      // Arrange
-      const mockRequest = new MockBuilder<Request>().build();
-      const mockResponse = new MockBuilder<Response>().build();
-
+    it("creates a `Container`", async () => {
       // Act
-      calculate(mockRequest.object, mockResponse.object);
+      await calculate(mockRequest.object, mockResponse.object);
+
+      // Assert
+      expect(ContainerFactory.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("resolves a `CalculationRequestHandler` from the `Container`", async () => {
+      // Act
+      await calculate(mockRequest.object, mockResponse.object);
 
       // Assert
       mockContainer.verify(
-        c => c.get<CalculateRequestHandler>(CalculateRequestHandler),
+        c => c.resolve(CalculateRequestHandler),
         TypeMoq.Times.once()
       );
     });
 
-    it("invokes the `handleRequest()` method on the resolved `CalculateRequestHandler`", () => {
-      // Arrange
-      const mockRequest = new MockBuilder<Request>().build();
-      const mockResponse = new MockBuilder<Response>().build();
-
+    it("invokes the `handleRequest()` method on the resolved `CalculateRequestHandler`", async () => {
       // Act
-      calculate(mockRequest.object, mockResponse.object);
+      await calculate(mockRequest.object, mockResponse.object);
 
       // Assert
       mockCalculateRequestHandler.verify(

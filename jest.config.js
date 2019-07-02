@@ -1,8 +1,5 @@
 module.exports = {
-  roots: ["<rootDir>/src", "<rootDir>/tests"],
-  transform: {
-    "^.+\\.tsx?$": "ts-jest"
-  },
+  preset: "ts-jest",
   setupFilesAfterEnv: ["./tests/setup.ts"],
   collectCoverage: true,
   collectCoverageFrom: ["<rootDir>/src/**"],
