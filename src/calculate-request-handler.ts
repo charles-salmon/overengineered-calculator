@@ -52,18 +52,15 @@ class CalculateRequestHandler {
   public async handleRequest(): Promise<void> {
     dotenv.config();
 
-    if (
-      !REQUIRED_ENVIRONMENT_VARIABLES.every(variable =>
-        Object.keys(process.env).some(key => key === variable)
-      )
-    ) {
+    if (!CalculateRequestHandler.isRequiredEnvironmentVariablesConfigured()) {
       this.response
         .status(500)
         .send(ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET);
       throw new Error(ERROR.REQUIRED_ENVIRONMENT_VARIABLES_NOT_SET);
     }
 
-    if (!(await this.slackRequestSignatureValidator.isSignatureValid())) {
+    const isSignatureValid = await this.slackRequestSignatureValidator.isSignatureValid();
+    if (!isSignatureValid) {
       this.response.status(400).send(ERROR.INVALID_REQUEST_SIGNATURE);
       return;
     }
@@ -93,6 +90,12 @@ class CalculateRequestHandler {
     }
 
     this.response.status(200).send(responseBody);
+  }
+
+  private static isRequiredEnvironmentVariablesConfigured(): boolean {
+    return REQUIRED_ENVIRONMENT_VARIABLES.every(variable =>
+      Object.keys(process.env).some(key => key === variable)
+    );
   }
 
   private static createErrorBlocks(errorMessage: string): SectionBlock[] {
