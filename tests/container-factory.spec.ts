@@ -15,7 +15,6 @@ describe("container-factory.ts", () => {
       beforeEach(() => {
         request = new MockBuilder<Request>().build().object;
         response = new MockBuilder<Response>().build().object;
-        process.env.SLACK_SIGNING_SECRET = undefined;
       });
 
       it("creates a container which can get `request` using the 'Request' service identifier", () => {
